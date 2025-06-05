@@ -44,24 +44,6 @@ library AssociatedAccountsLib {
         return _isValidSignature(eip712Hash(sar.record), sar);
     }
 
-    /// @notice Validates the `signature` against the given `hash`.
-    ///
-    /// @dev This implementation follows ERC-1271. See https://eips.ethereum.org/EIPS/eip-1271.
-    /// @dev IMPORTANT: Signature verification is performed on the hash produced AFTER applying the anti
-    ///      cross-account-replay layer on the given `hash` (i.e., verification is run on the replay-safe
-    ///      hash version).
-    ///
-    /// @return result `0x1626ba7e` if validation succeeded, else `0xffffffff`.
-    function isValidSignature(bytes32 hash, bytes memory signature) public view returns (bytes4 result) {
-        SignedAssociationRecord memory sar = abi.decode(signature, (SignedAssociationRecord));
-        if (_isValidSignature(hash, sar)) {
-            // bytes4(keccak256("isValidSignature(bytes32,bytes)"))
-            return 0x1626ba7e;
-        }
-
-        return 0xffffffff;
-    }
-
     /// @notice Returns the `domainSeparator` used to create EIP-712 compliant hashes.
     ///
     /// @dev Implements domainSeparator = hashStruct(eip712Domain).
