@@ -9,7 +9,12 @@ import {console} from "forge-std/console.sol";
 ///     SignedAssociationRecords.
 library AssociatedAccountsLib {
 
-    event AssociationCreated();
+    /// @notice Emitted when a SignedAssociationRecord completes its approval process.
+    ///
+    /// @param initiator The indexed address of the account that initiated the association.
+    /// @param approver The indexed address of the account that accepted and completed the association.
+    /// @param sar The completed SignedAssociationRecord for the association between `initiator` and `approver`.
+    event AssociationCreated(address indexed initiator, address indexed approver, SignedAssociationRecord sar);
 
     /// @dev Precomputed `typeHash` used to produce EIP-712 compliant hash.
     ///      The original hash must be:
@@ -32,12 +37,6 @@ library AssociatedAccountsLib {
         AssociatedAccountRecord record;
         /// @dev The signature data.
         bytes signature;
-        /// @dev Association state showing whether this is an initiation or approval
-    }
-
-    enum AssociationState {
-        INITIATED,
-        APPROVED
     }
 
     /// @notice Helper for validating the contents of a SignedAssociationRecord.

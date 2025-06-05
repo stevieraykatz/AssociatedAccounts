@@ -7,7 +7,7 @@ import {console} from "forge-std/console.sol";
 
 import {AssociatedAccountsLib} from "src/AssociatedAccountsLib.sol";
 
-contract AssociatedAccountsBase is Test {
+contract AssociatedAccountsFlow is Test {
     using AssociatedAccountsLib for *;
 
     uint256 pkeyApprover = 0x0A;
@@ -17,12 +17,10 @@ contract AssociatedAccountsBase is Test {
 
     bytes4 VALID_SIGNATURE = 0x1626ba7e;
     bytes4 INVALID_SIGNATURE = 0xffffffff;
-    
-    function setUp() public {}
 
-    function test_AllowsTwoAccountsToAssociate() public view {
+    function test_AllowsTwoAccountsToAssociate() public {
+        /// ORIGINATION
         /// STEP 1: the Initiator builds and signs an AAR, associating the initiator and approver addresses
-        
         // 1.A/B: Build the AAR 
         AssociatedAccountsLib.AssociatedAccountRecord memory step1_aar = AssociatedAccountsLib.AssociatedAccountRecord({
             account: approver,
@@ -40,8 +38,6 @@ contract AssociatedAccountsBase is Test {
             record: step1_aar,
             signature: step1_signatureData
         });
-
-        assertTrue(step1_sar.validateAssociatedAccount());
 
         /// STEP 2: The Approver builds and signs an AAR, accepting the signed payload from Step 1 as `data`.
         // 2.A: Build the AAR including the SAR from step 1 as the data payload. 
@@ -62,7 +58,22 @@ contract AssociatedAccountsBase is Test {
             signature: step2_signatureData
         });
 
+        /// STEP 3: Emit the specified event with the final SAR and associated accounts.
+        emit AssociatedAccountsLib.AssociationCreated(initiator, approver, step2_sar);
+
+
+        /// CONSUMPTION
+        // STEP 1: validate that the signature is valid for the Approver
         assertTrue(step2_sar.validateAssociatedAccount());
+
+        // STEP 2: Decode the SAR.record field to fetch the initiator's SAR
+        AssociatedAccountsLib.SignedAssociationRecord memory initiator_sar = abi.decode(step2_sar.record.data, (AssociatedAccountsLib.SignedAssociationRecord));
+    
+        // STEP 3: validate that the signature is valid for the Initiator
+        assertTrue(initiator_sar.validateAssociatedAccount());
+
+        // STEP 4: validate that the address for approver matches the initiator's `SAR.record.account` field.
+        assertEq(approver, initiator_sar.record.account);
     }
 
 }
