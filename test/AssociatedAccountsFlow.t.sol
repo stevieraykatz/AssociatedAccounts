@@ -21,59 +21,36 @@ contract AssociatedAccountsFlow is Test {
     function test_AllowsTwoAccountsToAssociate() public {
         /// ORIGINATION
         /// STEP 1: the Initiator builds and signs an AAR, associating the initiator and approver addresses
-        // 1.A/B: Build the AAR 
-        AssociatedAccountsLib.AssociatedAccountRecord memory step1_aar = AssociatedAccountsLib.AssociatedAccountRecord({
-            account: approver,
-            data: ""
-        });
+        // 1.A/B: Build the AAR
+        AssociatedAccountsLib.AssociatedAccountRecord memory aar =
+            AssociatedAccountsLib.AssociatedAccountRecord({initiator: initiator, approver: approver, data: ""});
 
         // 1.C: Sign the AAR
-        bytes32 step1_hash = AssociatedAccountsLib.eip712Hash(step1_aar);
-        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(pkeyInitiator, step1_hash);
+        bytes32 aarHash = aar.eip712Hash();
+        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(pkeyInitiator, aarHash);
 
-        // 1.D: Return an SAR
-        bytes memory step1_signatureData = abi.encodePacked(r1, s1, v1);
+        // 1.D: Return the partial SAR
+        bytes memory initiatorSignature = abi.encodePacked(r1, s1, v1);
         AssociatedAccountsLib.SignedAssociationRecord memory step1_sar = AssociatedAccountsLib.SignedAssociationRecord({
-            signer: initiator, 
-            record: step1_aar,
-            signature: step1_signatureData
+            initiatorSignature: initiatorSignature,
+            approverSignature: "",
+            record: aar
         });
 
-        /// STEP 2: The Approver builds and signs an AAR, accepting the signed payload from Step 1 as `data`.
-        // 2.A: Build the AAR including the SAR from step 1 as the data payload. 
-        AssociatedAccountsLib.AssociatedAccountRecord memory step2_aar = AssociatedAccountsLib.AssociatedAccountRecord({
-            account: initiator,
-            data: abi.encode(step1_sar)
-        });
+        /// STEP 2: The Approver signs the AAR.
+        // 2.A: Approver signs the AAR.
+        (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(pkeyApprover, aarHash);
 
-        // 2.B: Sign the AAR
-        bytes32 step2_hash = AssociatedAccountsLib.eip712Hash(step2_aar);
-        (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(pkeyApprover, step2_hash);
-
-        // 2.C: Return the final SAR
-        bytes memory step2_signatureData = abi.encodePacked(r2, s2, v2);
-        AssociatedAccountsLib.SignedAssociationRecord memory step2_sar = AssociatedAccountsLib.SignedAssociationRecord({
-            signer: approver,
-            record: step2_aar,
-            signature: step2_signatureData
-        });
+        // 2.C: Return the finalized SAR
+        bytes memory approverSignature = abi.encodePacked(r2, s2, v2);
+        AssociatedAccountsLib.SignedAssociationRecord memory step2_sar = step1_sar;
+        step2_sar.approverSignature = approverSignature;
 
         /// STEP 3: Emit the specified event with the final SAR and associated accounts.
         emit AssociatedAccountsLib.AssociationCreated(initiator, approver, step2_sar);
 
-
         /// CONSUMPTION
-        // STEP 1: validate that the signature is valid for the Approver
+        // STEP 1: validate that the signature is valid for both the Initiator and the Approver
         assertTrue(step2_sar.validateAssociatedAccount());
-
-        // STEP 2: Decode the SAR.record field to fetch the initiator's SAR
-        AssociatedAccountsLib.SignedAssociationRecord memory initiator_sar = abi.decode(step2_sar.record.data, (AssociatedAccountsLib.SignedAssociationRecord));
-    
-        // STEP 3: validate that the signature is valid for the Initiator
-        assertTrue(initiator_sar.validateAssociatedAccount());
-
-        // STEP 4: validate that the address for approver matches the initiator's `SAR.record.account` field.
-        assertEq(approver, initiator_sar.record.account);
     }
-
 }
