@@ -1,17 +1,10 @@
-## Foundry
+## Associated Accounts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
-
-Foundry consists of:
-
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+This specification defines a standard for establishing and verifying associations between EVM addresses. This allows addresses to publicly declare and prove a relationship with other addresses, enabling use cases like sub-account identity inheritance, authorization delegation, and reputation collation. 
 
 ## Documentation
 
-https://book.getfoundry.sh/
+https://docs.google.com/document/d/1sFSZqr7vJOpC4_VzXjBvRjgEBSj3dP-_1PSpXFDLEaI/edit?usp=sharing
 
 ## Usage
 
@@ -31,36 +24,4 @@ $ forge test
 
 ```shell
 $ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
 ```
