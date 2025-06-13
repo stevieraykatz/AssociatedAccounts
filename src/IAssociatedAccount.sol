@@ -33,29 +33,30 @@ interface AssociatedAccounts {
     ///
     /// @param initiator The indexed address of the account that initiated the association.
     /// @param approver The indexed address of the account that accepted and completed the association.
-    /// @param uuid The indexed uuid for the SignedAssociationRecord. 
+    /// @param uuid The indexed uuid for the SignedAssociationRecord.
     /// @param sar The completed SignedAssociationRecord for the association between `initiator` and `approver`.
-    event AssociationCreated(address indexed initiator, address indexed approver, bytes32 indexed uuid, SignedAssociationRecord sar);
+    event AssociationCreated(
+        address indexed initiator, address indexed approver, bytes32 indexed uuid, SignedAssociationRecord sar
+    );
 
     /// @notice Emitted when a previously active SignedAssociationRecord is revoked.
     ///
     /// @param revoker The indexed address of the account that revoked the association.
-    /// @param uuid The indexed unique identifier for the association. 
+    /// @param uuid The indexed unique identifier for the association.
     event AssociationCreated(address indexed revoker, bytes32 indexed uuid);
 
     /// @notice Method for storing a completed SignedAssociationRecord.
-    /// 
+    ///
     /// @dev The signed association record must meet the following validation criteria upon storage:
     ///     1. `sar.originatedAt` <= block.timestamp
     ///     2. `sar.revokedAt` == 0 || `sar.revokedAt` < block.timestamp
     ///     3. `sar.initiatorSignature` passes ECDSA or EIP-1271 signature validation.
-    ///     4. `sar.approverSignature` passes ECDSA or EIP-1271 signature validation. 
+    ///     4. `sar.approverSignature` passes ECDSA or EIP-1271 signature validation.
     ///
     ///     Upon successful validation, the method must emit the `AssociationCreated` event.
     ///
-    /// @param sar The SignedAssociationRecord. 
+    /// @param sar The SignedAssociationRecord.
     function storeAssociation(SignedAssociationRecord calldata sar) external;
-
 
     /// @notice Method for either parties in an association to revoke the association.
     ///

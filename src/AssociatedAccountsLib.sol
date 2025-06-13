@@ -43,7 +43,7 @@ library AssociatedAccountsLib {
     /// @notice Helper for validating the contents of a SignedAssociationRecord.
     function validateAssociatedAccount(SignedAssociationRecord memory sar) external view returns (bool) {
         bytes32 hash = eip712Hash(sar.record);
-        return _isValidSignature(hash, ar.record.approver, sar.approverSignature)
+        return _isValidSignature(hash, sar.record.approver, sar.approverSignature)
             && _isValidSignature(hash, sar.record.initiator, sar.initiatorSignature);
     }
 
@@ -57,7 +57,10 @@ library AssociatedAccountsLib {
         (string memory name, string memory version) = _domainNameAndVersion();
         return keccak256(
             abi.encode(
-                keccak256("EIP712Domain(string name,string version)"), keccak256(bytes(name)), keccak256(bytes(version)), block.chainid
+                keccak256("EIP712Domain(string name,string version)"),
+                keccak256(bytes(name)),
+                keccak256(bytes(version)),
+                block.chainid
             )
         );
     }
@@ -65,17 +68,15 @@ library AssociatedAccountsLib {
     /// @notice Helper for generating the association uuid for a given `aar`.
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
-    ///     with the eip-712 domainSeparator. 
+    ///     with the eip-712 domainSeparator.
     function uuidFromAAR(AssociatedAccountRecord memory aar) public pure returns (bytes32) {
-        return keccak256(abi.encode(
-            aar.initiator, aar.approver, domainSeparator()
-        ));
+        return keccak256(abi.encode(aar.initiator, aar.approver, domainSeparator()));
     }
 
     /// @notice Helper for generating the association uuid for a given `sar`.
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
-    ///     with the eip-712 domainSeparator. 
+    ///     with the eip-712 domainSeparator.
     function uuidFromSAR(SignedAssociationRecord memory sar) public pure returns (bytes32) {
         return uuidFromAAR(sar.record);
     }
@@ -111,7 +112,11 @@ library AssociatedAccountsLib {
     /// @dev See https://eips.ethereum.org/EIPS/eip-712#specification.
     ////
     /// @return The resulting EIP-712 hash.
-    function _eip712Hash(bytes memory initiator, bytes memory approver, bytes memory data) internal pure returns (bytes32) {
+    function _eip712Hash(bytes memory initiator, bytes memory approver, bytes memory data)
+        internal
+        pure
+        returns (bytes32)
+    {
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator(), _hashStruct(initiator, approver, data)));
     }
 
@@ -122,18 +127,11 @@ library AssociatedAccountsLib {
     /// @dev See https://eips.ethereum.org/EIPS/eip-712#definition-of-hashstruct.
     ///
     /// @return The EIP-712 `hashStruct` result.
-    function _hashStruct(bytes memory initiator, bytes memory approver, bytes memory data) internal pure returns (bytes32) {
-        keccak256(abi.encodePacked(
-   hex"1901",
-   domainSeparator(),
-   keccak256(abi.encode(
-keccak256("AssociatedAccountRecord(bytes initiator, bytes approver, bytes data)"),
-keccak256(initiator), 
-keccak256(approver),
-	keccak256(data)
-))
-));
-
+    function _hashStruct(bytes memory initiator, bytes memory approver, bytes memory data)
+        internal
+        pure
+        returns (bytes32)
+    {
         return keccak256(abi.encode(_MESSAGE_TYPEHASH, keccak256(initiator), keccak256(approver), keccak256(data)));
     }
 }

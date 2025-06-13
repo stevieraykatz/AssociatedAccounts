@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-
 import {AssociatedAccountsLib, SignedAssociationRecord, AssociatedAccountRecord} from "./AssociatedAccountsLib.sol";
 
 contract AssociatedAccounts {
@@ -9,7 +8,7 @@ contract AssociatedAccounts {
     using AssociatedAccountsLib for AssociatedAccountRecord;
 
     mapping(bytes32 associationId => SignedAssociationRecord record) public associations;
-    
+
     event AssociationInitiated(address indexed initiator, address indexed approver, SignedAssociationRecord sar);
 
     /// @notice Emitted when a SignedAssociationRecord completes its approval process.
@@ -23,13 +22,12 @@ contract AssociatedAccounts {
     error InvalidRevocation();
 
     modifier onlyValid(SignedAssociationRecord memory sar) {
-        if(!sar.validateAssociatedAccount()) revert InvalidAssociation();
+        if (!sar.validateAssociatedAccount()) revert InvalidAssociation();
         _;
     }
 
-    function storeAssociation(SignedAssociationRecord memory sar) onlyValid(sar) external returns (bytes32 uuid) {
+    function storeAssociation(SignedAssociationRecord memory sar) external onlyValid(sar) returns (bytes32 uuid) {
         uuid = sar.uuidFromSAR();
         associations[uuid] = sar;
     }
-
 }
