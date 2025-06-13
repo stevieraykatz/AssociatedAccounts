@@ -2,48 +2,48 @@
 pragma solidity ^0.8.23;
 
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import {CAIP10} from "@openzeppelin/contracts/utils/CAIP10.sol";
 import {console} from "forge-std/console.sol";
+
+/// @notice Represents an association between two accounts.
+struct AssociatedAccountRecord {
+    /// @dev The CAIP-10 address of the initiating account.
+    bytes initiator;
+    /// @dev The CAIP-10 address of the approving account
+    bytes approver;
+    /// @dev Optional 4-byte selector for interfacing with the `data` field.
+    bytes4 interfaceId;
+    /// @dev Optional additional data.
+    bytes data;
+}
+
+/// @notice Helper struct for sharing a signed association.
+struct SignedAssociationRecord {
+    /// @dev The timestamp the association was originated.
+    uint128 originatedAt;
+    /// @dev The timestamp the association was revoked, `0` if active.
+    uint128 revokedAt;
+    /// @dev The signature of the initiator.
+    bytes initiatorSignature;
+    /// @dev The signature of the approver.
+    bytes approverSignature;
+    /// @dev The signed AssociatedAccountRecord.
+    AssociatedAccountRecord record;
+}
 
 /// @notice Helper Lib for creating, signing and validating AssociatedAccount records and the resulting
 ///     SignedAssociationRecords.
 library AssociatedAccountsLib {
-    /// @notice Emitted when a SignedAssociationRecord completes its approval process.
-    ///
-    /// @param initiator The indexed address of the account that initiated the association.
-    /// @param approver The indexed address of the account that accepted and completed the association.
-    /// @param sar The completed SignedAssociationRecord for the association between `initiator` and `approver`.
-    event AssociationCreated(address indexed initiator, address indexed approver, SignedAssociationRecord sar);
-
     /// @dev Precomputed `typeHash` used to produce EIP-712 compliant hash.
     ///      The original hash must be:
     ///         - An EIP-712 hash: keccak256("\x19\x01" || someDomainSeparator || hashStruct(someStruct))
     bytes32 private constant _MESSAGE_TYPEHASH =
-        keccak256("AssociatedAccountRecord(address initiator, address approver, bytes data)");
-
-    /// @notice Represents an association between two accounts.
-    struct AssociatedAccountRecord {
-        /// @dev The address of the initiating account.
-        address initiator;
-        /// @dev The address of the approving account
-        address approver;
-        /// @dev Optional additional data.
-        bytes data;
-    }
-
-    /// @notice Helper struct for sharing an initiated signed association.
-    struct SignedAssociationRecord {
-        /// @dev The signature of the initiator.
-        bytes initiatorSignature;
-        /// @dev The signature of the approver.
-        bytes approverSignature;
-        /// @dev The signed AssociatedAccountRecord
-        AssociatedAccountRecord record;
-    }
+        keccak256("AssociatedAccountRecord(bytes initiator, bytes approver, bytes data)");
 
     /// @notice Helper for validating the contents of a SignedAssociationRecord.
     function validateAssociatedAccount(SignedAssociationRecord memory sar) external view returns (bool) {
         bytes32 hash = eip712Hash(sar.record);
-        return _isValidSignature(hash, sar.record.approver, sar.approverSignature)
+        return _isValidSignature(hash, ar.record.approver, sar.approverSignature)
             && _isValidSignature(hash, sar.record.initiator, sar.initiatorSignature);
     }
 
@@ -53,13 +53,31 @@ library AssociatedAccountsLib {
     ///      See https://eips.ethereum.org/EIPS/eip-712#definition-of-domainseparator.
     ///
     /// @return The 32 bytes domain separator result.
-    function domainSeparator() public pure returns (bytes32) {
+    function domainSeparator() public view returns (bytes32) {
         (string memory name, string memory version) = _domainNameAndVersion();
         return keccak256(
             abi.encode(
-                keccak256("EIP712Domain(string name,string version)"), keccak256(bytes(name)), keccak256(bytes(version))
+                keccak256("EIP712Domain(string name,string version)"), keccak256(bytes(name)), keccak256(bytes(version)), block.chainid
             )
         );
+    }
+
+    /// @notice Helper for generating the association uuid for a given `aar`.
+    ///
+    /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
+    ///     with the eip-712 domainSeparator. 
+    function uuidFromAAR(AssociatedAccountRecord memory aar) public pure returns (bytes32) {
+        return keccak256(abi.encode(
+            aar.initiator, aar.approver, domainSeparator()
+        ));
+    }
+
+    /// @notice Helper for generating the association uuid for a given `sar`.
+    ///
+    /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
+    ///     with the eip-712 domainSeparator. 
+    function uuidFromSAR(SignedAssociationRecord memory sar) public pure returns (bytes32) {
+        return uuidFromAAR(sar.record);
     }
 
     /// @notice Helper for fetching the EIP-712 signature hash for a provided AssociatedAccountRecord.
@@ -93,7 +111,7 @@ library AssociatedAccountsLib {
     /// @dev See https://eips.ethereum.org/EIPS/eip-712#specification.
     ////
     /// @return The resulting EIP-712 hash.
-    function _eip712Hash(address initiator, address approver, bytes memory data) internal pure returns (bytes32) {
+    function _eip712Hash(bytes memory initiator, bytes memory approver, bytes memory data) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator(), _hashStruct(initiator, approver, data)));
     }
 
@@ -104,7 +122,18 @@ library AssociatedAccountsLib {
     /// @dev See https://eips.ethereum.org/EIPS/eip-712#definition-of-hashstruct.
     ///
     /// @return The EIP-712 `hashStruct` result.
-    function _hashStruct(address initiator, address approver, bytes memory data) internal pure returns (bytes32) {
-        return keccak256(abi.encode(_MESSAGE_TYPEHASH, initiator, approver, keccak256(data)));
+    function _hashStruct(bytes memory initiator, bytes memory approver, bytes memory data) internal pure returns (bytes32) {
+        keccak256(abi.encodePacked(
+   hex"1901",
+   domainSeparator(),
+   keccak256(abi.encode(
+keccak256("AssociatedAccountRecord(bytes initiator, bytes approver, bytes data)"),
+keccak256(initiator), 
+keccak256(approver),
+	keccak256(data)
+))
+));
+
+        return keccak256(abi.encode(_MESSAGE_TYPEHASH, keccak256(initiator), keccak256(approver), keccak256(data)));
     }
 }
