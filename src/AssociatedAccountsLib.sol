@@ -3,14 +3,15 @@ pragma solidity ^0.8.23;
 
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {CAIP10} from "@openzeppelin/contracts/utils/CAIP10.sol";
+import {CAIP10Util} from "./CAIP10Util.sol";
 import {console} from "forge-std/console.sol";
 
 /// @notice Represents an association between two accounts.
 struct AssociatedAccountRecord {
     /// @dev The CAIP-10 address of the initiating account.
-    bytes initiator;
+    string initiator;
     /// @dev The CAIP-10 address of the approving account
-    bytes approver;
+    string approver;
     /// @dev Optional 4-byte selector for interfacing with the `data` field.
     bytes4 interfaceId;
     /// @dev Optional additional data.
@@ -34,6 +35,8 @@ struct SignedAssociationRecord {
 /// @notice Helper Lib for creating, signing and validating AssociatedAccount records and the resulting
 ///     SignedAssociationRecords.
 library AssociatedAccountsLib {
+    using CAIP10Util for string;
+
     /// @dev Precomputed `typeHash` used to produce EIP-712 compliant hash.
     ///      The original hash must be:
     ///         - An EIP-712 hash: keccak256("\x19\x01" || someDomainSeparator || hashStruct(someStruct))
@@ -43,8 +46,8 @@ library AssociatedAccountsLib {
     /// @notice Helper for validating the contents of a SignedAssociationRecord.
     function validateAssociatedAccount(SignedAssociationRecord memory sar) external view returns (bool) {
         bytes32 hash = eip712Hash(sar.record);
-        return _isValidSignature(hash, sar.record.approver, sar.approverSignature)
-            && _isValidSignature(hash, sar.record.initiator, sar.initiatorSignature);
+        return _isValidSignature(hash, sar.record.approver.toAddress(), sar.approverSignature)
+            && _isValidSignature(hash, sar.record.initiator.toAddress(), sar.initiatorSignature);
     }
 
     /// @notice Returns the `domainSeparator` used to create EIP-712 compliant hashes.
@@ -69,7 +72,7 @@ library AssociatedAccountsLib {
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
     ///     with the eip-712 domainSeparator.
-    function uuidFromAAR(AssociatedAccountRecord memory aar) public pure returns (bytes32) {
+    function uuidFromAAR(AssociatedAccountRecord memory aar) public view returns (bytes32) {
         return keccak256(abi.encode(aar.initiator, aar.approver, domainSeparator()));
     }
 
@@ -77,12 +80,12 @@ library AssociatedAccountsLib {
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
     ///     with the eip-712 domainSeparator.
-    function uuidFromSAR(SignedAssociationRecord memory sar) public pure returns (bytes32) {
+    function uuidFromSAR(SignedAssociationRecord memory sar) public view returns (bytes32) {
         return uuidFromAAR(sar.record);
     }
 
     /// @notice Helper for fetching the EIP-712 signature hash for a provided AssociatedAccountRecord.
-    function eip712Hash(AssociatedAccountRecord memory aar) public pure returns (bytes32) {
+    function eip712Hash(AssociatedAccountRecord memory aar) public view returns (bytes32) {
         return _eip712Hash(aar.initiator, aar.approver, aar.data);
     }
 
@@ -112,9 +115,9 @@ library AssociatedAccountsLib {
     /// @dev See https://eips.ethereum.org/EIPS/eip-712#specification.
     ////
     /// @return The resulting EIP-712 hash.
-    function _eip712Hash(bytes memory initiator, bytes memory approver, bytes memory data)
+    function _eip712Hash(string memory initiator, string memory approver, bytes memory data)
         internal
-        pure
+        view
         returns (bytes32)
     {
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator(), _hashStruct(initiator, approver, data)));
@@ -127,11 +130,11 @@ library AssociatedAccountsLib {
     /// @dev See https://eips.ethereum.org/EIPS/eip-712#definition-of-hashstruct.
     ///
     /// @return The EIP-712 `hashStruct` result.
-    function _hashStruct(bytes memory initiator, bytes memory approver, bytes memory data)
+    function _hashStruct(string memory initiator, string memory approver, bytes memory data)
         internal
         pure
         returns (bytes32)
     {
-        return keccak256(abi.encode(_MESSAGE_TYPEHASH, keccak256(initiator), keccak256(approver), keccak256(data)));
+        return keccak256(abi.encode(_MESSAGE_TYPEHASH, keccak256(bytes(initiator)), keccak256(bytes(approver)), keccak256(data)));
     }
 }
