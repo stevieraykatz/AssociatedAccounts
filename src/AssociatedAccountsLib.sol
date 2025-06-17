@@ -61,7 +61,7 @@ library AssociatedAccountsLib {
 
     /// @notice Helper for fetching the EIP-712 signature hash for a provided AssociatedAccountRecord.
     function eip712Hash(AssociatedAccounts.AssociatedAccountRecord memory aar) public view returns (bytes32) {
-        return _eip712Hash(aar.initiator, aar.approver, aar.data);
+        return _eip712Hash(aar.initiator, aar.approver, aar.interfaceId, aar.data);
     }
 
     /// @notice Returns the domain name and version to use when creating EIP-712 signatures.
@@ -90,12 +90,12 @@ library AssociatedAccountsLib {
     /// @dev See https://eips.ethereum.org/EIPS/eip-712#specification.
     ////
     /// @return The resulting EIP-712 hash.
-    function _eip712Hash(string memory initiator, string memory approver, bytes memory data)
+    function _eip712Hash(string memory initiator, string memory approver, bytes4 interfaceId, bytes memory data)
         internal
         view
         returns (bytes32)
     {
-        return keccak256(abi.encodePacked("\x19\x01", domainSeparator(), _hashStruct(initiator, approver, data)));
+        return keccak256(abi.encodePacked("\x19\x01", domainSeparator(), _hashStruct(initiator, approver, interfaceId, data)));
     }
 
     /// @notice Returns the EIP-712 `hashStruct` result of the `AssociatedAccountRecord(address account, bytes data)` data
@@ -105,11 +105,15 @@ library AssociatedAccountsLib {
     /// @dev See https://eips.ethereum.org/EIPS/eip-712#definition-of-hashstruct.
     ///
     /// @return The EIP-712 `hashStruct` result.
-    function _hashStruct(string memory initiator, string memory approver, bytes memory data)
+    function _hashStruct(string memory initiator, string memory approver, bytes4 interfaceId, bytes memory data)
         internal
         pure
         returns (bytes32)
     {
-        return keccak256(abi.encode(_MESSAGE_TYPEHASH, keccak256(bytes(initiator)), keccak256(bytes(approver)), keccak256(data)));
+        address initiatorAddr = initiator.toAddress();
+        address approverAddr = approver.toAddress();
+        return initiatorAddr > approverAddr ? 
+            keccak256(abi.encode(_MESSAGE_TYPEHASH, keccak256(bytes(approver)), keccak256(bytes(initiator)), interfaceId, keccak256(data))) : 
+            keccak256(abi.encode(_MESSAGE_TYPEHASH, keccak256(bytes(initiator)), keccak256(bytes(approver)), interfaceId, keccak256(data)));
     }
 }
