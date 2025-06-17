@@ -5,32 +5,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 import {CAIP10} from "@openzeppelin/contracts/utils/CAIP10.sol";
 import {CAIP10Util} from "./CAIP10Util.sol";
 import {console} from "forge-std/console.sol";
-
-/// @notice Represents an association between two accounts.
-struct AssociatedAccountRecord {
-    /// @dev The CAIP-10 address of the initiating account.
-    string initiator;
-    /// @dev The CAIP-10 address of the approving account
-    string approver;
-    /// @dev Optional 4-byte selector for interfacing with the `data` field.
-    bytes4 interfaceId;
-    /// @dev Optional additional data.
-    bytes data;
-}
-
-/// @notice Helper struct for sharing a signed association.
-struct SignedAssociationRecord {
-    /// @dev The timestamp the association was originated.
-    uint128 originatedAt;
-    /// @dev The timestamp the association was revoked, `0` if active.
-    uint128 revokedAt;
-    /// @dev The signature of the initiator.
-    bytes initiatorSignature;
-    /// @dev The signature of the approver.
-    bytes approverSignature;
-    /// @dev The signed AssociatedAccountRecord.
-    AssociatedAccountRecord record;
-}
+import {AssociatedAccounts} from "src/AssociatedAccounts.sol";
 
 /// @notice Helper Lib for creating, signing and validating AssociatedAccount records and the resulting
 ///     SignedAssociationRecords.
@@ -44,7 +19,7 @@ library AssociatedAccountsLib {
         keccak256("AssociatedAccountRecord(bytes initiator, bytes approver, bytes data)");
 
     /// @notice Helper for validating the contents of a SignedAssociationRecord.
-    function validateAssociatedAccount(SignedAssociationRecord memory sar) external view returns (bool) {
+    function validateAssociatedAccount(AssociatedAccounts.SignedAssociationRecord memory sar) external view returns (bool) {
         bytes32 hash = eip712Hash(sar.record);
         return _isValidSignature(hash, sar.record.approver.toAddress(), sar.approverSignature)
             && _isValidSignature(hash, sar.record.initiator.toAddress(), sar.initiatorSignature);
@@ -72,7 +47,7 @@ library AssociatedAccountsLib {
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
     ///     with the eip-712 domainSeparator.
-    function uuidFromAAR(AssociatedAccountRecord memory aar) public view returns (bytes32) {
+    function uuidFromAAR(AssociatedAccounts.AssociatedAccountRecord memory aar) public view returns (bytes32) {
         return keccak256(abi.encode(aar.initiator, aar.approver, domainSeparator()));
     }
 
@@ -80,12 +55,12 @@ library AssociatedAccountsLib {
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
     ///     with the eip-712 domainSeparator.
-    function uuidFromSAR(SignedAssociationRecord memory sar) public view returns (bytes32) {
+    function uuidFromSAR(AssociatedAccounts.SignedAssociationRecord memory sar) public view returns (bytes32) {
         return uuidFromAAR(sar.record);
     }
 
     /// @notice Helper for fetching the EIP-712 signature hash for a provided AssociatedAccountRecord.
-    function eip712Hash(AssociatedAccountRecord memory aar) public view returns (bytes32) {
+    function eip712Hash(AssociatedAccounts.AssociatedAccountRecord memory aar) public view returns (bytes32) {
         return _eip712Hash(aar.initiator, aar.approver, aar.data);
     }
 

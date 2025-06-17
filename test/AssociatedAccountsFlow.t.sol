@@ -6,9 +6,15 @@ import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 
 import {AssociatedAccountsLib} from "src/AssociatedAccountsLib.sol";
+import {CAIP10} from "@openzeppelin/contracts/utils/CAIP10.sol";
+import {CAIP10Util} from "src/CAIP10Util.sol";
+import {AssociatedAccounts} from "src/AssociatedAccounts.sol";
+
 
 contract AssociatedAccountsFlow is Test {
     using AssociatedAccountsLib for *;
+    using CAIP10Util for string;
+    using CAIP10 for address;
 
     uint256 pkeyApprover = 0x0A;
     address approver = vm.addr(pkeyApprover);
@@ -22,8 +28,8 @@ contract AssociatedAccountsFlow is Test {
         /// ORIGINATION
         /// STEP 1: the Initiator builds and signs an AAR, associating the initiator and approver addresses
         // 1.A/B: Build the AAR
-        AssociatedAccountsLib.AssociatedAccountRecord memory aar =
-            AssociatedAccountsLib.AssociatedAccountRecord({initiator: initiator, approver: approver, data: ""});
+        AssociatedAccounts.AssociatedAccountRecord memory aar =
+            AssociatedAccounts.AssociatedAccountRecord({initiator: initiator.local(), approver: approver.local(), interfaceId: bytes4(0), data: ""});
 
         // 1.C: Sign the AAR
         bytes32 aarHash = aar.eip712Hash();
@@ -31,7 +37,9 @@ contract AssociatedAccountsFlow is Test {
 
         // 1.D: Return the partial SAR
         bytes memory initiatorSignature = abi.encodePacked(r1, s1, v1);
-        AssociatedAccountsLib.SignedAssociationRecord memory step1_sar = AssociatedAccountsLib.SignedAssociationRecord({
+        AssociatedAccounts.SignedAssociationRecord memory step1_sar = AssociatedAccounts.SignedAssociationRecord({
+            originatedAt: 0,
+            revokedAt: 0,
             initiatorSignature: initiatorSignature,
             approverSignature: "",
             record: aar
@@ -43,11 +51,12 @@ contract AssociatedAccountsFlow is Test {
 
         // 2.C: Return the finalized SAR
         bytes memory approverSignature = abi.encodePacked(r2, s2, v2);
-        AssociatedAccountsLib.SignedAssociationRecord memory step2_sar = step1_sar;
+        AssociatedAccounts.SignedAssociationRecord memory step2_sar = step1_sar;
         step2_sar.approverSignature = approverSignature;
+        step2_sar.originatedAt = uint128(block.timestamp);
 
         /// STEP 3: Emit the specified event with the final SAR and associated accounts.
-        emit AssociatedAccountsLib.AssociationCreated(initiator, approver, step2_sar);
+        emit AssociatedAccounts.AssociationCreated(initiator.local(), approver.local(),  aarHash, step2_sar);
 
         /// CONSUMPTION
         // STEP 1: validate that the signature is valid for both the Initiator and the Approver

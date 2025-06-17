@@ -1,33 +1,79 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.23;
 
-import {AssociatedAccountsLib, SignedAssociationRecord, AssociatedAccountRecord} from "./AssociatedAccountsLib.sol";
+pragma solidity ^0.8.24;
 
-contract AssociatedAccounts {
-    using AssociatedAccountsLib for SignedAssociationRecord;
-    using AssociatedAccountsLib for AssociatedAccountRecord;
+interface AssociatedAccounts {
+    /// @notice Represents an association between two accounts.
+    struct AssociatedAccountRecord {
+        /// @dev The CAIP-10 address of the initiating account.
+        string initiator;
+        /// @dev The CAIP-10 address of the approving account
+        string approver;
+        /// @dev Optional 4-byte selector for interfacing with the `data` field.
+        bytes4 interfaceId;
+        /// @dev Optional additional data.
+        bytes data;
+    }
 
-    mapping(bytes32 associationId => SignedAssociationRecord record) public associations;
-
-    event AssociationInitiated(address indexed initiator, address indexed approver, SignedAssociationRecord sar);
+    /// @notice Helper struct for sharing a signed association.
+    struct SignedAssociationRecord {
+        /// @dev The timestamp the association was originated.
+        uint128 originatedAt;
+        /// @dev The timestamp the association was revoked, `0` if active.
+        uint128 revokedAt;
+        /// @dev The signature of the initiator.
+        bytes initiatorSignature;
+        /// @dev The signature of the approver.
+        bytes approverSignature;
+        /// @dev The signed AssociatedAccountRecord.
+        AssociatedAccountRecord record;
+    }
 
     /// @notice Emitted when a SignedAssociationRecord completes its approval process.
     ///
-    /// @param initiator The indexed address of the account that initiated the association.
-    /// @param approver The indexed address of the account that accepted and completed the association.
+    /// @param initiator The indexed CAIP10 address of the account that initiated the association.
+    /// @param approver The indexed CAIP10 address of the account that accepted and completed the association.
+    /// @param uuid The indexed uuid for the SignedAssociationRecord.
     /// @param sar The completed SignedAssociationRecord for the association between `initiator` and `approver`.
-    event AssociationApproved(address indexed initiator, address indexed approver, SignedAssociationRecord sar);
+    event AssociationCreated(
+        string indexed initiator, string indexed approver, bytes32 indexed uuid, SignedAssociationRecord sar
+    );
 
-    error InvalidAssociation();
-    error InvalidRevocation();
+    /// @notice Emitted when a previously active SignedAssociationRecord is revoked.
+    ///
+    /// @param revoker The indexed address of the account that revoked the association.
+    /// @param uuid The indexed unique identifier for the association.
+    event AssociatedRevoked(address indexed revoker, bytes32 indexed uuid);
 
-    modifier onlyValid(SignedAssociationRecord memory sar) {
-        if (!sar.validateAssociatedAccount()) revert InvalidAssociation();
-        _;
-    }
 
-    function storeAssociation(SignedAssociationRecord memory sar) external onlyValid(sar) returns (bytes32 uuid) {
-        uuid = sar.uuidFromSAR();
-        associations[uuid] = sar;
-    }
+    /// @notice Method for storing a completed SignedAssociationRecord.
+    ///
+    /// @dev The signed association record must meet the following validation criteria upon storage:
+    ///     1. `sar.originatedAt` <= block.timestamp
+    ///     2. `sar.revokedAt` == 0 || `sar.revokedAt` < block.timestamp
+    ///     3. `sar.initiatorSignature` passes ECDSA or EIP-1271 signature validation.
+    ///     4. `sar.approverSignature` passes ECDSA or EIP-1271 signature validation.
+    ///
+    ///     Upon successful validation, the method must emit the `AssociationCreated` event.
+    ///
+    /// @param sar The SignedAssociationRecord.
+    function storeAssociation(SignedAssociationRecord calldata sar) external;
+
+    /// @notice Method for either parties in an association to revoke the association.
+    ///
+    /// @dev `uuid` == eip712Hash(`sar.record`)
+    ///     The caller MUST be either `sar.record.initiator` or `sar.record.approver`.
+    ///
+    /// @param uuid The uuid signifying a unique SignedAssociationRecord.
+    /// @param revokedAt The timestamp that the association should be revoked.
+    function revokeAssociation(bytes32 uuid, uint256 revokedAt) external;
+
+    /// @notice Method for fetching uuid(s) of associations between two addresses.
+    ///
+    /// @param addr1 CAIP10 address of the first account. 
+    /// @param addr2 CAIP10 address of the second account.
+    ///
+    /// @return areAssociated `true` if the accounts have at least one valid and active association, else `false`.
+    /// @return uuids Array of uuids for each association between the two accounts.
+    function fetchAssociatedAccounts(string memory addr1, string memory addr2) external returns (bool areAssociated, bytes32[] memory uuids);
 }
