@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.26;
 
-import {Math} from "openzeppelin-contracts/contracts/math/Math.sol";
-import {SafeCast} from "openzeppelin-contracts/contracts/math/SafeCast.sol";
-import {Bytes} from "openzeppelin-contracts/contracts/Bytes.sol";
-import {Calldata} from "openzeppelin-contracts/contracts/Calldata.sol";
+import {Math} from "lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
+import {SafeCast} from "lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol";
+import {Bytes} from "lib/openzeppelin-contracts/contracts/utils/Bytes.sol";
+import {Calldata} from "lib/openzeppelin-contracts/contracts/utils/Calldata.sol";
 
 /**
  * @dev Helper library to format and parse https://ethereum-magicians.org/t/erc-7930-interoperable-addresses/23365[ERC-7930] interoperable
@@ -17,6 +17,8 @@ library InteroperableAddress {
 
     error InteroperableAddressParsingError(bytes);
     error InteroperableAddressEmptyReferenceAndAddress();
+
+    bytes2 constant EIP155_CHAIN_TYPE = 0x0000;
 
     /**
      * @dev Format an ERC-7930 interoperable address (version 1) from its components `chainType`, `chainReference`

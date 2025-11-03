@@ -1,28 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.23;
 
-import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import {CAIP10} from "@openzeppelin/contracts/utils/CAIP10.sol";
-import {CAIP10Util} from "./CAIP10Util.sol";
+import {AssociatedAccounts} from "./AssociatedAccounts.sol";
+import {K1, R1, EDDSA, BLS, WEBAUTHN} from "./Curves.sol";
+import {InteroperableAddress} from "./InteroperableAddresses.sol";
+import {SignatureChecker} from "lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol";
+
 import {console} from "forge-std/console.sol";
-import {AssociatedAccounts} from "src/AssociatedAccounts.sol";
 
 /// @notice Helper Lib for creating, signing and validating AssociatedAccount records and the resulting
 ///     SignedAssociationRecords.
 library AssociatedAccountsLib {
-    using CAIP10Util for string;
+    
+    error UnsupportedCurve(bytes1 curve);
+    error UnsupportedChainType(bytes2 chainType);
 
     /// @dev Precomputed `typeHash` used to produce EIP-712 compliant hash.
     ///      The original hash must be:
     ///         - An EIP-712 hash: keccak256("\x19\x01" || someDomainSeparator || hashStruct(someStruct))
     bytes32 private constant _MESSAGE_TYPEHASH =
-        keccak256("AssociatedAccountRecord(bytes initiator, bytes approver, bytes data)");
+        keccak256("AssociatedAccountRecord(bytes initiator, bytes approver, bytes4 interfaceId, bytes data)");
 
     /// @notice Helper for validating the contents of a SignedAssociationRecord.
-    function validateAssociatedAccount(AssociatedAccounts.SignedAssociationRecord memory sar) external view returns (bool) {
+    function validateAssociatedAccount(AssociatedAccounts.SignedAssociationRecord calldata sar) external view returns (bool) {
         bytes32 hash = eip712Hash(sar.record);
-        return _isValidSignature(hash, sar.record.approver.toAddress(), sar.approverSignature)
-            && _isValidSignature(hash, sar.record.initiator.toAddress(), sar.initiatorSignature);
+        return sar.validAt <= block.timestamp &&
+            sar.revokedAt > block.timestamp &&
+            _validateSignature(sar.record.initiator, sar.initiatorCurve, sar.initiatorSignature, hash) &&
+            _validateSignature(sar.record.approver, sar.approverCurve, sar.approverSignature, hash);
     }
 
     /// @notice Returns the `domainSeparator` used to create EIP-712 compliant hashes.
@@ -47,21 +52,66 @@ library AssociatedAccountsLib {
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
     ///     with the eip-712 domainSeparator.
-    function uuidFromAAR(AssociatedAccounts.AssociatedAccountRecord memory aar) public view returns (bytes32) {
-        return keccak256(abi.encode(aar.initiator, aar.approver, domainSeparator()));
+    function uuidFromAAR(AssociatedAccounts.AssociatedAccountRecord calldata aar) public view returns (bytes32) {
+        return _eip712Hash(aar.initiator, aar.approver, aar.interfaceId, aar.data);
     }
 
     /// @notice Helper for generating the association uuid for a given `sar`.
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
     ///     with the eip-712 domainSeparator.
-    function uuidFromSAR(AssociatedAccounts.SignedAssociationRecord memory sar) public view returns (bytes32) {
+    function uuidFromSAR(AssociatedAccounts.SignedAssociationRecord calldata sar) public view returns (bytes32) {
         return uuidFromAAR(sar.record);
     }
 
     /// @notice Helper for fetching the EIP-712 signature hash for a provided AssociatedAccountRecord.
-    function eip712Hash(AssociatedAccounts.AssociatedAccountRecord memory aar) public view returns (bytes32) {
+    function eip712Hash(AssociatedAccounts.AssociatedAccountRecord calldata aar) public view returns (bytes32) {
         return _eip712Hash(aar.initiator, aar.approver, aar.interfaceId, aar.data);
+    }
+
+    function _validateSignature(bytes calldata account, bytes1 curve, bytes calldata signature, bytes32 hash) internal view returns (bool) {
+        // recover account address, accept only EVM addresses for now
+        (bytes2 chainType, bytes memory chainReference, bytes memory addr) = InteroperableAddress.parseV1(account);
+        if(chainType != InteroperableAddress.EIP155_CHAIN_TYPE) {
+            revert UnsupportedChainType(chainType);
+        }
+        address accountAddr = address(bytes20(addr));
+        // switch on curve
+        if(curve == K1) {
+            return _validateSepc256k1(hash, accountAddr, signature);
+        }
+        else if (curve == R1) {
+            return _validateSepc256r1(hash, accountAddr, signature);
+        }
+        else if (curve == EDDSA) {
+            return _validateEddsa(hash, accountAddr, signature);
+        }
+        else if (curve == BLS) {
+            return _validateBls(hash, accountAddr, signature);
+        }
+        else if (curve == WEBAUTHN) {
+            return _validateWebauthN(hash, accountAddr, signature);
+        }
+    }
+
+    function _validateSepc256k1(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+        return SignatureChecker.isValidSignatureNow(account, hash, signature);
+    }
+
+    function _validateSepc256r1(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+        revert UnsupportedCurve(R1);
+    }
+    
+    function _validateEddsa(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+        revert UnsupportedCurve(EDDSA);
+    }
+
+    function _validateBls(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+        revert UnsupportedCurve(BLS);
+    }
+
+    function _validateWebauthN(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+        revert UnsupportedCurve(WEBAUTHN);
     }
 
     /// @notice Returns the domain name and version to use when creating EIP-712 signatures.
@@ -74,15 +124,6 @@ library AssociatedAccountsLib {
         return ("AssociatedAccount", "1");
     }
 
-    /// @notice Validates the `signature` against the given `hash`.
-    ///
-    /// @dev MUST be defined by the implementation.
-    ///
-    /// @return `true` is the signature is valid, else `false`.
-    function _isValidSignature(bytes32 hash, address signer, bytes memory signature) internal view returns (bool) {
-        return SignatureChecker.isValidSignatureNow(signer, hash, signature);
-    }
-
     /// @notice Returns the EIP-712 typed hash of the `AssociatedAccountRecord(address account, bytes data)` data structure.
     ///
     /// @dev Implements encode(domainSeparator : 𝔹²⁵⁶, message : 𝕊) = "\x19\x01" || domainSeparator ||
@@ -90,7 +131,7 @@ library AssociatedAccountsLib {
     /// @dev See https://eips.ethereum.org/EIPS/eip-712#specification.
     ////
     /// @return The resulting EIP-712 hash.
-    function _eip712Hash(string memory initiator, string memory approver, bytes4 interfaceId, bytes memory data)
+    function _eip712Hash(bytes calldata initiator, bytes calldata approver, bytes4 interfaceId, bytes calldata data)
         internal
         view
         returns (bytes32)
@@ -98,22 +139,17 @@ library AssociatedAccountsLib {
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator(), _hashStruct(initiator, approver, interfaceId, data)));
     }
 
-    /// @notice Returns the EIP-712 `hashStruct` result of the `AssociatedAccountRecord(address account, bytes data)` data
-    ///         structure.
+    /// @notice Returns the EIP-712 `hashStruct` result of the `AssociatedAccountRecord` data structure.
     ///
     /// @dev Implements hashStruct(s : 𝕊) = keccak256(typeHash || encodeData(s)).
-    /// @dev See https://eips.ethereum.org/EIPS/eip-712#definition-of-hashstruct.
+    /// See https://eips.ethereum.org/EIPS/eip-712#definition-of-hashstruct.
     ///
     /// @return The EIP-712 `hashStruct` result.
-    function _hashStruct(string memory initiator, string memory approver, bytes4 interfaceId, bytes memory data)
+    function _hashStruct(bytes calldata initiator, bytes calldata approver, bytes4 interfaceId, bytes calldata data)
         internal
         pure
         returns (bytes32)
     {
-        address initiatorAddr = initiator.toAddress();
-        address approverAddr = approver.toAddress();
-        return initiatorAddr > approverAddr ? 
-            keccak256(abi.encode(_MESSAGE_TYPEHASH, keccak256(bytes(approver)), keccak256(bytes(initiator)), interfaceId, keccak256(data))) : 
-            keccak256(abi.encode(_MESSAGE_TYPEHASH, keccak256(bytes(initiator)), keccak256(bytes(approver)), interfaceId, keccak256(data)));
+        return keccak256(abi.encode(_MESSAGE_TYPEHASH, keccak256(initiator), keccak256(approver), interfaceId, keccak256(data)));
     }
 }
