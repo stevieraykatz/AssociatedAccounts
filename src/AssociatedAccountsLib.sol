@@ -24,8 +24,16 @@ library AssociatedAccountsLib {
     /// @notice Helper for validating the contents of a SignedAssociationRecord.
     function validateAssociatedAccount(AssociatedAccounts.SignedAssociationRecord calldata sar) external view returns (bool) {
         bytes32 hash = eip712Hash(sar.record);
+        console.logBytes32(hash);
+        console.log("validAt", sar.validAt);
+        console.log("revokedAt", sar.revokedAt);
+        console.logBytes1(sar.initiatorCurve);
+        console.logBytes(sar.initiatorSignature);
+        console.logBytes1(sar.approverCurve);
+        console.logBytes(sar.approverSignature);
+        console.logBytes(abi.encode(sar.record));
         return sar.validAt <= block.timestamp &&
-            sar.revokedAt > block.timestamp &&
+            (sar.revokedAt == 0 || (sar.revokedAt > block.timestamp)) &&
             _validateSignature(sar.record.initiator, sar.initiatorCurve, sar.initiatorSignature, hash) &&
             _validateSignature(sar.record.approver, sar.approverCurve, sar.approverSignature, hash);
     }
