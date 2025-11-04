@@ -15,3 +15,10 @@ docs/
 
 # VScode
 .vscode/
+
+# Node
+node_modules/
+dist/
+
+# TypeScript
+*.tsbuildinfo

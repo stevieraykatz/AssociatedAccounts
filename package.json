@@ -1,0 +1,39 @@
+{
+  "name": "associated-accounts",
+  "version": "0.1.0",
+  "description": "A standard way to publicly associate two separate accounts with arbitrary contextual data",
+  "type": "module",
+  "main": "./abis/index.ts",
+  "types": "./abis/index.ts",
+  "files": [
+    "src/**/*.sol",
+    "abis/**/*",
+    "out/**/*.json"
+  ],
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "prepare-abis": "node scripts/prepare-abis.js"
+  },
+  "keywords": [
+    "ethereum",
+    "solidity",
+    "associated-accounts",
+    "eip712",
+    "erc7930"
+  ],
+  "author": "@stevieraykatz",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.2",
+    "viem": "^2.21.54"
+  },
+  "peerDependencies": {
+    "viem": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
