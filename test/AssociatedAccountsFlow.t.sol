@@ -25,8 +25,9 @@ contract AssociatedAccountsFlow is Test {
         /// ORIGINATION
         /// The Initiator builds and signs an AAR, associating the initiator and approver addresses
         // Message Creation
-        AssociatedAccounts.AssociatedAccountRecord memory aar =
-            AssociatedAccounts.AssociatedAccountRecord({initiator: initiator, approver: approver, interfaceId: bytes4(0), data: ""});
+        AssociatedAccounts.AssociatedAccountRecord memory aar = AssociatedAccounts.AssociatedAccountRecord({
+            initiator: initiator, approver: approver, interfaceId: bytes4(0), data: ""
+        });
 
         // Signing
         bytes32 aarHash = aar.eip712Hash();
