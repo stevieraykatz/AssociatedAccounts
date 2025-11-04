@@ -47,4 +47,18 @@ interface AssociatedAccounts {
     /// @param revoker The indexed unique identifier for the association.
     /// @param uuid The indexed keccak256 hash of the ERC-7930 address of the revoking account.
     event AssociationRevoked(bytes32 indexed uuid, bytes32 indexed revoker);
+
+    /// @notice Store a new SignedAssociationRecord after validation.
+    /// @param sar The SignedAssociationRecord to store.
+    function storeAssociation(SignedAssociationRecord calldata sar) external;
+
+    /// @notice Revoke an existing association.
+    /// @param uuid The unique identifier of the association to revoke.
+    /// @param revokedAt Optional timestamp for when the association should be considered revoked (0 for immediate).
+    function revokeAssociation(bytes32 uuid, uint120 revokedAt) external;
+
+    /// @notice Retrieve a stored association by uuid.
+    /// @param uuid The unique identifier of the association.
+    /// @return The SignedAssociationRecord corresponding to the uuid.
+    function getAssociation(bytes32 uuid) external view returns (SignedAssociationRecord memory);
 }

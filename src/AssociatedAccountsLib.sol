@@ -11,7 +11,6 @@ import {console} from "forge-std/console.sol";
 /// @notice Helper Lib for creating, signing and validating AssociatedAccount records and the resulting
 ///     SignedAssociationRecords.
 library AssociatedAccountsLib {
-    
     error UnsupportedCurve(bytes1 curve);
     error UnsupportedChainType(bytes2 chainType);
 
@@ -22,20 +21,23 @@ library AssociatedAccountsLib {
         keccak256("AssociatedAccountRecord(bytes initiator, bytes approver, bytes4 interfaceId, bytes data)");
 
     /// @notice Helper for validating the contents of a SignedAssociationRecord.
-    function validateAssociatedAccount(AssociatedAccounts.SignedAssociationRecord calldata sar) external view returns (bool) {
+    function validateAssociatedAccount(AssociatedAccounts.SignedAssociationRecord calldata sar)
+        external
+        view
+        returns (bool)
+    {
         bytes32 hash = eip712Hash(sar.record);
-        console.logBytes32(hash);
-        console.log("validAt", sar.validAt);
-        console.log("revokedAt", sar.revokedAt);
-        console.logBytes1(sar.initiatorCurve);
-        console.logBytes(sar.initiatorSignature);
-        console.logBytes1(sar.approverCurve);
-        console.logBytes(sar.approverSignature);
-        console.logBytes(abi.encode(sar.record));
-        return sar.validAt <= block.timestamp &&
-            (sar.revokedAt == 0 || (sar.revokedAt > block.timestamp)) &&
-            _validateSignature(sar.record.initiator, sar.initiatorCurve, sar.initiatorSignature, hash) &&
-            _validateSignature(sar.record.approver, sar.approverCurve, sar.approverSignature, hash);
+        // console.logBytes32(hash);
+        // console.log("validAt", sar.validAt);
+        // console.log("revokedAt", sar.revokedAt);
+        // console.logBytes1(sar.initiatorCurve);
+        // console.logBytes(sar.initiatorSignature);
+        // console.logBytes1(sar.approverCurve);
+        // console.logBytes(sar.approverSignature);
+        // console.logBytes(abi.encode(sar.record));
+        return sar.validAt <= block.timestamp && (sar.revokedAt == 0 || (sar.revokedAt > block.timestamp))
+            && _validateSignature(sar.record.initiator, sar.initiatorCurve, sar.initiatorSignature, hash)
+            && _validateSignature(sar.record.approver, sar.approverCurve, sar.approverSignature, hash);
     }
 
     /// @notice Returns the `domainSeparator` used to create EIP-712 compliant hashes.
@@ -77,27 +79,27 @@ library AssociatedAccountsLib {
         return _eip712Hash(aar.initiator, aar.approver, aar.interfaceId, aar.data);
     }
 
-    function _validateSignature(bytes calldata account, bytes1 curve, bytes calldata signature, bytes32 hash) internal view returns (bool) {
+    function _validateSignature(bytes calldata account, bytes1 curve, bytes calldata signature, bytes32 hash)
+        internal
+        view
+        returns (bool)
+    {
         // recover account address, accept only EVM addresses for now
         (bytes2 chainType, bytes memory chainReference, bytes memory addr) = InteroperableAddress.parseV1(account);
-        if(chainType != InteroperableAddress.EIP155_CHAIN_TYPE) {
+        if (chainType != InteroperableAddress.EIP155_CHAIN_TYPE) {
             revert UnsupportedChainType(chainType);
         }
         address accountAddr = address(bytes20(addr));
         // switch on curve
-        if(curve == K1) {
+        if (curve == K1) {
             return _validateSepc256k1(hash, accountAddr, signature);
-        }
-        else if (curve == R1) {
+        } else if (curve == R1) {
             return _validateSepc256r1(hash, accountAddr, signature);
-        }
-        else if (curve == EDDSA) {
+        } else if (curve == EDDSA) {
             return _validateEddsa(hash, accountAddr, signature);
-        }
-        else if (curve == BLS) {
+        } else if (curve == BLS) {
             return _validateBls(hash, accountAddr, signature);
-        }
-        else if (curve == WEBAUTHN) {
+        } else if (curve == WEBAUTHN) {
             return _validateWebauthN(hash, accountAddr, signature);
         }
     }
@@ -109,7 +111,7 @@ library AssociatedAccountsLib {
     function _validateSepc256r1(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
         revert UnsupportedCurve(R1);
     }
-    
+
     function _validateEddsa(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
         revert UnsupportedCurve(EDDSA);
     }
@@ -144,7 +146,10 @@ library AssociatedAccountsLib {
         view
         returns (bytes32)
     {
-        return keccak256(abi.encodePacked("\x19\x01", domainSeparator(), _hashStruct(initiator, approver, interfaceId, data)));
+        return
+            keccak256(
+                abi.encodePacked("\x19\x01", domainSeparator(), _hashStruct(initiator, approver, interfaceId, data))
+            );
     }
 
     /// @notice Returns the EIP-712 `hashStruct` result of the `AssociatedAccountRecord` data structure.
@@ -158,6 +163,8 @@ library AssociatedAccountsLib {
         pure
         returns (bytes32)
     {
-        return keccak256(abi.encode(_MESSAGE_TYPEHASH, keccak256(initiator), keccak256(approver), interfaceId, keccak256(data)));
+        return keccak256(
+            abi.encode(_MESSAGE_TYPEHASH, keccak256(initiator), keccak256(approver), interfaceId, keccak256(data))
+        );
     }
 }
