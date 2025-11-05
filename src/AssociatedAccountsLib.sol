@@ -167,9 +167,7 @@ library AssociatedAccountsLib {
     {
         // Sort addresses to ensure deterministic hash
         (bytes32 hash1, bytes32 hash2) = InteroperableAddressSort.sortAndHash(initiator, approver);
-        
-        return keccak256(
-            abi.encode(_MESSAGE_TYPEHASH, hash1, hash2, interfaceId, keccak256(data))
-        );
+
+        return keccak256(abi.encode(_MESSAGE_TYPEHASH, hash1, hash2, interfaceId, keccak256(data)));
     }
 }
