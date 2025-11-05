@@ -4,6 +4,7 @@ pragma solidity ^0.8.23;
 import {AssociatedAccounts} from "./AssociatedAccounts.sol";
 import {K1, R1, EDDSA, BLS, WEBAUTHN} from "./Curves.sol";
 import {InteroperableAddress} from "./InteroperableAddresses.sol";
+import {InteroperableAddressSort} from "./InteroperableAddressSort.sol";
 import {SignatureChecker} from "lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {console} from "forge-std/console.sol";
@@ -155,6 +156,7 @@ library AssociatedAccountsLib {
     /// @notice Returns the EIP-712 `hashStruct` result of the `AssociatedAccountRecord` data structure.
     ///
     /// @dev Implements hashStruct(s : 𝕊) = keccak256(typeHash || encodeData(s)).
+    /// @dev Addresses are sorted lexicographically to ensure deterministic hashing regardless of initiator/approver order.
     /// See https://eips.ethereum.org/EIPS/eip-712#definition-of-hashstruct.
     ///
     /// @return The EIP-712 `hashStruct` result.
@@ -163,8 +165,11 @@ library AssociatedAccountsLib {
         pure
         returns (bytes32)
     {
+        // Sort addresses to ensure deterministic hash
+        (bytes32 hash1, bytes32 hash2) = InteroperableAddressSort.sortAndHash(initiator, approver);
+        
         return keccak256(
-            abi.encode(_MESSAGE_TYPEHASH, keccak256(initiator), keccak256(approver), interfaceId, keccak256(data))
+            abi.encode(_MESSAGE_TYPEHASH, hash1, hash2, interfaceId, keccak256(data))
         );
     }
 }
