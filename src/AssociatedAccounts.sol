@@ -21,9 +21,9 @@ interface AssociatedAccounts {
         /// @dev The timestamp the association was revoked.
         uint120 revokedAt;
         /// @dev The initiator curve specifier.
-        bytes1 initiatorCurve;
+        bytes2 initiatorCurve;
         /// @dev The approver curve specifier.
-        bytes1 approverCurve;
+        bytes2 approverCurve;
         /// @dev The signature of the initiator.
         bytes initiatorSignature;
         /// @dev The signature of the approver.

@@ -2,9 +2,11 @@
 pragma solidity ^0.8.23;
 
 import {AssociatedAccounts} from "./AssociatedAccounts.sol";
-import {K1, R1, EDDSA, BLS, WEBAUTHN} from "./Curves.sol";
+import "./Curves.sol";
 import {InteroperableAddress} from "./InteroperableAddresses.sol";
 import {InteroperableAddressSort} from "./InteroperableAddressSort.sol";
+
+import {IERC1271} from "./interface/IERC1271.sol";
 import {SignatureChecker} from "lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {console} from "forge-std/console.sol";
@@ -12,7 +14,7 @@ import {console} from "forge-std/console.sol";
 /// @notice Helper Lib for creating, signing and validating AssociatedAccount records and the resulting
 ///     SignedAssociationRecords.
 library AssociatedAccountsLib {
-    error UnsupportedCurve(bytes1 curve);
+    error UnsupportedCurve(bytes2 curve);
     error UnsupportedChainType(bytes2 chainType);
 
     /// @dev Precomputed `typeHash` used to produce EIP-712 compliant hash.
@@ -80,7 +82,7 @@ library AssociatedAccountsLib {
         return _eip712Hash(aar.initiator, aar.approver, aar.interfaceId, aar.data);
     }
 
-    function _validateSignature(bytes calldata account, bytes1 curve, bytes calldata signature, bytes32 hash)
+    function _validateSignature(bytes calldata account, bytes2 curve, bytes calldata signature, bytes32 hash)
         internal
         view
         returns (bool)
@@ -101,7 +103,14 @@ library AssociatedAccountsLib {
         } else if (curve == BLS) {
             return _validateBls(hash, accountAddr, signature);
         } else if (curve == WEBAUTHN) {
-            return _validateWebauthN(hash, accountAddr, signature);
+            return _validateWebAuthn(hash, accountAddr, signature);
+        } else if (curve == ERC1271) {
+            return _validateErc1271(hash, accountAddr, signature);
+        } else if (curve == ERC6492) {
+            return _validateErc6492(hash, accountAddr, signature);
+        }
+        else {
+            revert UnsupportedCurve(curve);
         }
     }
 
@@ -121,8 +130,16 @@ library AssociatedAccountsLib {
         revert UnsupportedCurve(BLS);
     }
 
-    function _validateWebauthN(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+    function _validateWebAuthn(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
         revert UnsupportedCurve(WEBAUTHN);
+    }
+
+    function _validateErc1271(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+        return IERC1271(account).isValidSignature(hash, signature);
+    }
+
+    function _validateErc6492(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+        revert UnsupportedCurve(ERC6492);
     }
 
     /// @notice Returns the domain name and version to use when creating EIP-712 signatures.
