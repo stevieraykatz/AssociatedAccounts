@@ -27,13 +27,13 @@ export const associatedAccountsAbi = [
           },
           {
             "name": "initiatorCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "approverCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "initiatorSignature",
@@ -116,13 +116,13 @@ export const associatedAccountsAbi = [
           },
           {
             "name": "initiatorCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "approverCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "initiatorSignature",
@@ -207,13 +207,13 @@ export const associatedAccountsAbi = [
           },
           {
             "name": "initiatorCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "approverCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "initiatorSignature",

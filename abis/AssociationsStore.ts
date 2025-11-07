@@ -51,13 +51,13 @@ export const associationsStoreAbi = [
           },
           {
             "name": "initiatorCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "approverCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "initiatorSignature",
@@ -129,13 +129,13 @@ export const associationsStoreAbi = [
           },
           {
             "name": "initiatorCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "approverCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "initiatorSignature",
@@ -217,13 +217,13 @@ export const associationsStoreAbi = [
           },
           {
             "name": "initiatorCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "approverCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "initiatorSignature",
@@ -314,13 +314,13 @@ export const associationsStoreAbi = [
           },
           {
             "name": "initiatorCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "approverCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "initiatorSignature",
@@ -403,13 +403,13 @@ export const associationsStoreAbi = [
           },
           {
             "name": "initiatorCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "approverCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "initiatorSignature",
@@ -494,13 +494,13 @@ export const associationsStoreAbi = [
           },
           {
             "name": "initiatorCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "approverCurve",
-            "type": "bytes1",
-            "internalType": "bytes1"
+            "type": "bytes2",
+            "internalType": "bytes2"
           },
           {
             "name": "initiatorSignature",
@@ -580,6 +580,17 @@ export const associationsStoreAbi = [
   },
   {
     "type": "error",
+    "name": "InteroperableAddressParsingError",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "InvalidAssociation",
     "inputs": []
   },
@@ -587,5 +598,27 @@ export const associationsStoreAbi = [
     "type": "error",
     "name": "UnauthorizedRevocation",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnsupportedChainType",
+    "inputs": [
+      {
+        "name": "chainType",
+        "type": "bytes2",
+        "internalType": "bytes2"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnsupportedCurve",
+    "inputs": [
+      {
+        "name": "curve",
+        "type": "bytes2",
+        "internalType": "bytes2"
+      }
+    ]
   }
 ] as const;

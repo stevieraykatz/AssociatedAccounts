@@ -25,7 +25,7 @@ library AssociatedAccountsLib {
 
     /// @notice Helper for validating the contents of a SignedAssociationRecord.
     function validateAssociatedAccount(AssociatedAccounts.SignedAssociationRecord calldata sar)
-        external
+        internal
         view
         returns (bool)
     {
@@ -49,7 +49,7 @@ library AssociatedAccountsLib {
     ///      See https://eips.ethereum.org/EIPS/eip-712#definition-of-domainseparator.
     ///
     /// @return The 32 bytes domain separator result.
-    function domainSeparator() public view returns (bytes32) {
+    function domainSeparator() internal view returns (bytes32) {
         (string memory name, string memory version) = _domainNameAndVersion();
         return keccak256(
             abi.encode(
@@ -65,7 +65,7 @@ library AssociatedAccountsLib {
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
     ///     with the eip-712 domainSeparator.
-    function uuidFromAAR(AssociatedAccounts.AssociatedAccountRecord calldata aar) public view returns (bytes32) {
+    function uuidFromAAR(AssociatedAccounts.AssociatedAccountRecord calldata aar) internal view returns (bytes32) {
         return _eip712Hash(aar.initiator, aar.approver, aar.interfaceId, aar.data);
     }
 
@@ -73,12 +73,12 @@ library AssociatedAccountsLib {
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
     ///     with the eip-712 domainSeparator.
-    function uuidFromSAR(AssociatedAccounts.SignedAssociationRecord calldata sar) public view returns (bytes32) {
+    function uuidFromSAR(AssociatedAccounts.SignedAssociationRecord calldata sar) internal view returns (bytes32) {
         return uuidFromAAR(sar.record);
     }
 
     /// @notice Helper for fetching the EIP-712 signature hash for a provided AssociatedAccountRecord.
-    function eip712Hash(AssociatedAccounts.AssociatedAccountRecord calldata aar) public view returns (bytes32) {
+    function eip712Hash(AssociatedAccounts.AssociatedAccountRecord calldata aar) internal view returns (bytes32) {
         return _eip712Hash(aar.initiator, aar.approver, aar.interfaceId, aar.data);
     }
 
