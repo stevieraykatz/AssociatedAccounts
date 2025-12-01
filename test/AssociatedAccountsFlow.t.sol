@@ -2,7 +2,6 @@
 pragma solidity ^0.8.23;
 
 import {Test} from "forge-std/Test.sol";
-import {console} from "forge-std/console.sol";
 
 import {AssociatedAccountsLib} from "src/AssociatedAccountsLib.sol";
 import {AssociatedAccounts} from "src/AssociatedAccounts.sol";
