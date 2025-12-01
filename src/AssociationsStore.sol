@@ -36,7 +36,7 @@ contract AssociationsStore is AssociatedAccounts {
     function storeAssociation(SignedAssociationRecord calldata sar) external {
         bytes32 uuid = sar.uuidFromSAR();
 
-        if (associations[uuid].validAt != 0) revert AssociationAlreadyExists();
+        if (associations[uuid].record.validAt != 0) revert AssociationAlreadyExists();
         if (!sar.validateAssociatedAccount()) revert InvalidAssociation();
 
         bytes32 initiatorHash = keccak256(sar.record.initiator);
@@ -52,10 +52,10 @@ contract AssociationsStore is AssociatedAccounts {
     /// @notice Revoke an existing association.
     /// @param uuid The unique identifier of the association to revoke.
     /// @param revokedAt Optional timestamp for when the association should be considered revoked (0 for immediate).
-    function revokeAssociation(bytes32 uuid, uint120 revokedAt) external {
+    function revokeAssociation(bytes32 uuid, uint40 revokedAt) external {
         SignedAssociationRecord storage sar = associations[uuid];
 
-        if (sar.validAt == 0) revert AssociationNotFound();
+        if (sar.record.validAt == 0) revert AssociationNotFound();
         if (sar.revokedAt != 0) revert AssociationAlreadyRevoked();
 
         // Format the msg.sender as an ERC-7930 address for comparison
@@ -66,14 +66,14 @@ contract AssociationsStore is AssociatedAccounts {
         bytes32 initiatorHash = keccak256(sar.record.initiator);
         bytes32 approverHash = keccak256(sar.record.approver);
 
-        if (senderHash != initiatorHash && senderHash != approverHash) {
+        if (senderHash != initiatorHash || senderHash != approverHash) {
             revert UnauthorizedRevocation();
         }
 
-        uint120 effectiveRevokedAt = revokedAt > block.timestamp ? revokedAt : uint120(block.timestamp);
+        uint40 effectiveRevokedAt = revokedAt > block.timestamp ? revokedAt : uint40(block.timestamp);
         sar.revokedAt = effectiveRevokedAt;
 
-        emit AssociationRevoked(uuid, senderHash);
+        emit AssociationRevoked(uuid, senderHash, effectiveRevokedAt);
     }
 
     /// @notice Retrieve a stored association by uuid.
@@ -81,7 +81,7 @@ contract AssociationsStore is AssociatedAccounts {
     /// @return The SignedAssociationRecord corresponding to the uuid.
     function getAssociation(bytes32 uuid) external view returns (SignedAssociationRecord memory) {
         SignedAssociationRecord memory sar = associations[uuid];
-        if (sar.validAt == 0) {
+        if (sar.record.validAt == 0) {
             revert AssociationNotFound();
         }
         return sar;
@@ -208,6 +208,9 @@ contract AssociationsStore is AssociatedAccounts {
     /// @return True if the association is active, false otherwise.
     function _isActive(SignedAssociationRecord storage sar) private view returns (bool) {
         return
-            sar.validAt > 0 && sar.validAt <= block.timestamp && (sar.revokedAt == 0 || sar.revokedAt > block.timestamp);
+            sar.record.validAt > 0 && 
+            sar.record.validAt <= block.timestamp && 
+            (sar.record.validUntil == 0 || sar.record.validUntil > block.timestamp) &&
+            (sar.revokedAt == 0 || sar.revokedAt > block.timestamp);
     }
 }
