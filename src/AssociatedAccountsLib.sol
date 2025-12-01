@@ -30,18 +30,24 @@ library AssociatedAccountsLib {
         returns (bool)
     {
         bytes32 hash = eip712Hash(sar.record);
-        // Check timestamp validity
+        
+        // 1. The current timestamp MUST be greater than or equal to the `validAt` timestamp.
         if (block.timestamp < sar.record.validAt) return false;
+        // 2. If the `validUntil` timestamp is nonzero, the current timestamp MUST be less than the `validUntil` timestamp. 
         if (sar.record.validUntil != 0 && block.timestamp >= sar.record.validUntil) return false;
+        // 3. The association MUST NOT have been revoked.
         if (sar.revokedAt != 0 && block.timestamp >= sar.revokedAt) return false;
 
-        // Validate signatures if provided
+        // 4. If the `initiatorSignature` field is populated, the signature MUST be valid for the EIP-712 preimage 
+        // of the underlying `AssociatedAccountRecord` using an appropriate `initiatorKeyType` validation mechanism. 
         if (
             sar.initiatorSignature.length > 0
                 && !_validateSignature(sar.record.initiator, sar.initiatorKeyType, sar.initiatorSignature, hash)
         ) {
             return false;
         }
+        // 5. If the `approverSignature` field is populated, the signature MUST be valid for the EIP-712 preimage 
+        // of the underlying `AssociatedAccountRecord` using an appropriate `approverKeyType` validation mechanism. 
         if (
             sar.approverSignature.length > 0
                 && !_validateSignature(sar.record.approver, sar.approverKeyType, sar.approverSignature, hash)
