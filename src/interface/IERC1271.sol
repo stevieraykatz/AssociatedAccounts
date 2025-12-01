@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 interface IERC1271 {
-        /// @notice Validates the `signature` against the given `hash`.
+    /// @notice Validates the `signature` against the given `hash`.
     ///
     /// @dev MUST be defined by the implementation.
     ///

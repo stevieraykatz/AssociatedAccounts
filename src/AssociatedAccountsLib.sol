@@ -19,8 +19,9 @@ library AssociatedAccountsLib {
     /// @dev Precomputed `typeHash` used to produce EIP-712 compliant hash.
     ///      The original hash must be:
     ///         - An EIP-712 hash: keccak256("\x19\x01" || someDomainSeparator || hashStruct(someStruct))
-    bytes32 private constant _MESSAGE_TYPEHASH =
-        keccak256("AssociatedAccountRecord(bytes initiator,bytes approver,uint40 validAt,uint40 validUntil,bytes4 interfaceId,bytes data)");
+    bytes32 private constant _MESSAGE_TYPEHASH = keccak256(
+        "AssociatedAccountRecord(bytes initiator,bytes approver,uint40 validAt,uint40 validUntil,bytes4 interfaceId,bytes data)"
+    );
 
     /// @notice Helper for validating the contents of a SignedAssociationRecord.
     function validateAssociatedAccount(AssociatedAccounts.SignedAssociationRecord calldata sar)
@@ -33,17 +34,21 @@ library AssociatedAccountsLib {
         if (block.timestamp < sar.record.validAt) return false;
         if (sar.record.validUntil != 0 && block.timestamp >= sar.record.validUntil) return false;
         if (sar.revokedAt != 0 && block.timestamp >= sar.revokedAt) return false;
-        
+
         // Validate signatures if provided
-        if (sar.initiatorSignature.length > 0 && 
-            !_validateSignature(sar.record.initiator, sar.initiatorKeyType, sar.initiatorSignature, hash)) {
+        if (
+            sar.initiatorSignature.length > 0
+                && !_validateSignature(sar.record.initiator, sar.initiatorKeyType, sar.initiatorSignature, hash)
+        ) {
             return false;
         }
-        if (sar.approverSignature.length > 0 && 
-            !_validateSignature(sar.record.approver, sar.approverKeyType, sar.approverSignature, hash)) {
+        if (
+            sar.approverSignature.length > 0
+                && !_validateSignature(sar.record.approver, sar.approverKeyType, sar.approverSignature, hash)
+        ) {
             return false;
         }
-        
+
         return true;
     }
 
@@ -57,9 +62,7 @@ library AssociatedAccountsLib {
         (string memory name, string memory version) = _domainNameAndVersion();
         return keccak256(
             abi.encode(
-                keccak256("EIP712Domain(string name,string version)"),
-                keccak256(bytes(name)),
-                keccak256(bytes(version))
+                keccak256("EIP712Domain(string name,string version)"), keccak256(bytes(name)), keccak256(bytes(version))
             )
         );
     }
@@ -111,8 +114,7 @@ library AssociatedAccountsLib {
             return _validateErc1271(hash, accountAddr, signature);
         } else if (keyType == ERC6492) {
             return _validateErc6492(hash, accountAddr, signature);
-        }
-        else {
+        } else {
             revert UnsupportedKeyType(keyType);
         }
     }
@@ -163,21 +165,18 @@ library AssociatedAccountsLib {
     ///
     /// @return The resulting EIP-712 hash.
     function _eip712Hash(
-        bytes calldata initiator, 
-        bytes calldata approver, 
+        bytes calldata initiator,
+        bytes calldata approver,
         uint40 validAt,
         uint40 validUntil,
-        bytes4 interfaceId, 
+        bytes4 interfaceId,
         bytes calldata data
-    )
-        internal
-        pure
-        returns (bytes32)
-    {
-        return
-            keccak256(
-                abi.encodePacked("\x19\x01", domainSeparator(), _hashStruct(initiator, approver, validAt, validUntil, interfaceId, data))
-            );
+    ) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encodePacked(
+                "\x19\x01", domainSeparator(), _hashStruct(initiator, approver, validAt, validUntil, interfaceId, data)
+            )
+        );
     }
 
     /// @notice Returns the EIP-712 `hashStruct` result of the `AssociatedAccountRecord` data structure.
@@ -187,21 +186,17 @@ library AssociatedAccountsLib {
     ///
     /// @return The EIP-712 `hashStruct` result.
     function _hashStruct(
-        bytes calldata initiator, 
+        bytes calldata initiator,
         bytes calldata approver,
         uint40 validAt,
         uint40 validUntil,
-        bytes4 interfaceId, 
+        bytes4 interfaceId,
         bytes calldata data
-    )
-        internal
-        pure
-        returns (bytes32)
-    {
+    ) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(
-                _MESSAGE_TYPEHASH, 
-                keccak256(initiator), 
+                _MESSAGE_TYPEHASH,
+                keccak256(initiator),
                 keccak256(approver),
                 validAt,
                 validUntil,

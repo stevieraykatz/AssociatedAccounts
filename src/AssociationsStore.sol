@@ -207,10 +207,8 @@ contract AssociationsStore is AssociatedAccounts {
     /// @param sar The SignedAssociationRecord to check.
     /// @return True if the association is active, false otherwise.
     function _isActive(SignedAssociationRecord storage sar) private view returns (bool) {
-        return
-            sar.record.validAt > 0 && 
-            sar.record.validAt <= block.timestamp && 
-            (sar.record.validUntil == 0 || sar.record.validUntil > block.timestamp) &&
-            (sar.revokedAt == 0 || sar.revokedAt > block.timestamp);
+        return sar.record.validAt > 0 && sar.record.validAt <= block.timestamp
+            && (sar.record.validUntil == 0 || sar.record.validUntil > block.timestamp)
+            && (sar.revokedAt == 0 || sar.revokedAt > block.timestamp);
     }
 }
