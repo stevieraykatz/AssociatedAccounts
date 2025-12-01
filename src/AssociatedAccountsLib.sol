@@ -2,7 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {AssociatedAccounts} from "./AssociatedAccounts.sol";
-import "./Curves.sol";
+import "./KeyTypes.sol";
 import {InteroperableAddress} from "./InteroperableAddresses.sol";
 
 import {IERC1271} from "./interface/IERC1271.sol";
