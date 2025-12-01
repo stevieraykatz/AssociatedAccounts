@@ -8,8 +8,6 @@ import {InteroperableAddress} from "./InteroperableAddresses.sol";
 import {IERC1271} from "./interface/IERC1271.sol";
 import {SignatureChecker} from "lib/openzeppelin-contracts/contracts/utils/cryptography/SignatureChecker.sol";
 
-import {console} from "forge-std/console.sol";
-
 /// @notice Helper Lib for creating, signing and validating AssociatedAccount records and the resulting
 ///     SignedAssociationRecords.
 library AssociatedAccountsLib {
@@ -24,7 +22,7 @@ library AssociatedAccountsLib {
     );
 
     /// @notice Helper for validating the contents of a SignedAssociationRecord.
-    function validateAssociatedAccount(AssociatedAccounts.SignedAssociationRecord calldata sar)
+    function validateAssociatedAccount(AssociatedAccounts.SignedAssociationRecord memory sar)
         internal
         view
         returns (bool)
@@ -73,28 +71,28 @@ library AssociatedAccountsLib {
         );
     }
 
-    /// @notice Helper for generating the association uuid for a given `aar`.
+    /// @notice Helper for generating the association ID for a given `aar`.
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
     ///     with the eip-712 domainSeparator.
-    function uuidFromAAR(AssociatedAccounts.AssociatedAccountRecord calldata aar) internal pure returns (bytes32) {
+    function associationIdFromAAR(AssociatedAccounts.AssociatedAccountRecord memory aar) internal pure returns (bytes32) {
         return _eip712Hash(aar.initiator, aar.approver, aar.validAt, aar.validUntil, aar.interfaceId, aar.data);
     }
 
-    /// @notice Helper for generating the association uuid for a given `sar`.
+    /// @notice Helper for generating the association ID for a given `sar`.
     ///
     /// @dev The keccak256 hash of the encoding of the two addresses `initiator` and `approver`,
     ///     with the eip-712 domainSeparator.
-    function uuidFromSAR(AssociatedAccounts.SignedAssociationRecord calldata sar) internal pure returns (bytes32) {
-        return uuidFromAAR(sar.record);
+    function associationIdFromSAR(AssociatedAccounts.SignedAssociationRecord memory sar) internal pure returns (bytes32) {
+        return associationIdFromAAR(sar.record);
     }
 
     /// @notice Helper for fetching the EIP-712 signature hash for a provided AssociatedAccountRecord.
-    function eip712Hash(AssociatedAccounts.AssociatedAccountRecord calldata aar) internal pure returns (bytes32) {
+    function eip712Hash(AssociatedAccounts.AssociatedAccountRecord memory aar) internal pure returns (bytes32) {
         return _eip712Hash(aar.initiator, aar.approver, aar.validAt, aar.validUntil, aar.interfaceId, aar.data);
     }
 
-    function _validateSignature(bytes calldata account, bytes2 keyType, bytes calldata signature, bytes32 hash)
+    function _validateSignature(bytes memory account, bytes2 keyType, bytes memory signature, bytes32 hash)
         internal
         view
         returns (bool)
@@ -125,31 +123,31 @@ library AssociatedAccountsLib {
         }
     }
 
-    function _validateSepc256k1(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+    function _validateSepc256k1(bytes32 hash, address account, bytes memory signature) internal view returns (bool) {
         return SignatureChecker.isValidSignatureNow(account, hash, signature);
     }
 
-    function _validateSepc256r1(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+    function _validateSepc256r1(bytes32 hash, address account, bytes memory signature) internal view returns (bool) {
         revert UnsupportedKeyType(R1);
     }
 
-    function _validateEddsa(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+    function _validateEddsa(bytes32 hash, address account, bytes memory signature) internal view returns (bool) {
         revert UnsupportedKeyType(EDDSA);
     }
 
-    function _validateBls(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+    function _validateBls(bytes32 hash, address account, bytes memory signature) internal view returns (bool) {
         revert UnsupportedKeyType(BLS);
     }
 
-    function _validateWebAuthn(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+    function _validateWebAuthn(bytes32 hash, address account, bytes memory signature) internal view returns (bool) {
         revert UnsupportedKeyType(WEBAUTHN);
     }
 
-    function _validateErc1271(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+    function _validateErc1271(bytes32 hash, address account, bytes memory signature) internal view returns (bool) {
         return IERC1271(account).isValidSignature(hash, signature);
     }
 
-    function _validateErc6492(bytes32 hash, address account, bytes calldata signature) internal view returns (bool) {
+    function _validateErc6492(bytes32 hash, address account, bytes memory signature) internal view returns (bool) {
         revert UnsupportedKeyType(ERC6492);
     }
 
@@ -171,12 +169,12 @@ library AssociatedAccountsLib {
     ///
     /// @return The resulting EIP-712 hash.
     function _eip712Hash(
-        bytes calldata initiator,
-        bytes calldata approver,
+        bytes memory initiator,
+        bytes memory approver,
         uint40 validAt,
         uint40 validUntil,
         bytes4 interfaceId,
-        bytes calldata data
+        bytes memory data
     ) internal pure returns (bytes32) {
         return keccak256(
             abi.encodePacked(
@@ -192,12 +190,12 @@ library AssociatedAccountsLib {
     ///
     /// @return The EIP-712 `hashStruct` result.
     function _hashStruct(
-        bytes calldata initiator,
-        bytes calldata approver,
+        bytes memory initiator,
+        bytes memory approver,
         uint40 validAt,
         uint40 validUntil,
         bytes4 interfaceId,
-        bytes calldata data
+        bytes memory data
     ) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(

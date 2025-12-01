@@ -10,5 +10,5 @@ interface IERC1271 {
     /// @param signature The signature associated with `hash`.
     ///
     /// @return `true` is the signature is valid, else `false`.
-    function isValidSignature(bytes32 hash, bytes calldata signature) external view virtual returns (bool);
+    function isValidSignature(bytes32 hash, bytes calldata signature) external view returns (bool);
 }

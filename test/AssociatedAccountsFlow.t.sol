@@ -8,7 +8,7 @@ import {AssociatedAccountsLib} from "src/AssociatedAccountsLib.sol";
 import {AssociatedAccounts} from "src/AssociatedAccounts.sol";
 
 import {InteroperableAddress} from "src/InteroperableAddresses.sol";
-import {K1} from "src/Curves.sol";
+import {K1} from "src/KeyTypes.sol";
 
 contract AssociatedAccountsFlow is Test {
     using AssociatedAccountsLib for *;
@@ -26,20 +26,24 @@ contract AssociatedAccountsFlow is Test {
         /// The Initiator builds and signs an AAR, associating the initiator and approver addresses
         // Message Creation
         AssociatedAccounts.AssociatedAccountRecord memory aar = AssociatedAccounts.AssociatedAccountRecord({
-            initiator: initiator, approver: approver, interfaceId: bytes4(0), data: ""
+            initiator: initiator,
+            approver: approver,
+            validAt: uint40(block.timestamp),
+            validUntil: 0, // No expiration
+            interfaceId: bytes4(0),
+            data: ""
         });
 
         // Signing
-        bytes32 aarHash = aar.eip712Hash();
+        bytes32 aarHash = AssociatedAccountsLib.eip712Hash(aar);
         (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(pkeyInitiator, aarHash);
 
         // Output
         bytes memory initiatorSignature = abi.encodePacked(r1, s1, v1);
         AssociatedAccounts.SignedAssociationRecord memory step1_sar = AssociatedAccounts.SignedAssociationRecord({
-            validAt: 0,
             revokedAt: 0,
-            initiatorCurve: K1,
-            approverCurve: 0,
+            initiatorKeyType: K1,
+            approverKeyType: bytes2(0),
             initiatorSignature: initiatorSignature,
             approverSignature: "",
             record: aar
@@ -54,8 +58,7 @@ contract AssociatedAccountsFlow is Test {
         bytes memory approverSignature = abi.encodePacked(r2, s2, v2);
         AssociatedAccounts.SignedAssociationRecord memory step2_sar = step1_sar;
         step2_sar.approverSignature = approverSignature;
-        step2_sar.approverCurve = K1;
-        step2_sar.validAt = uint120(block.timestamp);
+        step2_sar.approverKeyType = K1;
 
         /// CONSUMPTION
         // Validation

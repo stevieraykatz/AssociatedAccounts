@@ -56,12 +56,12 @@ interface AssociatedAccounts {
     function storeAssociation(SignedAssociationRecord calldata sar) external;
 
     /// @notice Revoke an existing association.
-    /// @param uuid The unique identifier of the association to revoke.
+    /// @param associationId The unique identifier of the association to revoke.
     /// @param revokedAt Optional timestamp for when the association should be considered revoked (0 for immediate).
-    function revokeAssociation(bytes32 uuid, uint40 revokedAt) external;
+    function revokeAssociation(bytes32 associationId, uint40 revokedAt) external;
 
-    /// @notice Retrieve a stored association by uuid.
-    /// @param uuid The unique identifier of the association.
-    /// @return The SignedAssociationRecord corresponding to the uuid.
-    function getAssociation(bytes32 uuid) external view returns (SignedAssociationRecord memory);
+    /// @notice Retrieve a stored association by its identifier.
+    /// @param associationId The unique identifier of the association.
+    /// @return The SignedAssociationRecord corresponding to the associationId.
+    function getAssociation(bytes32 associationId) external view returns (SignedAssociationRecord memory);
 }

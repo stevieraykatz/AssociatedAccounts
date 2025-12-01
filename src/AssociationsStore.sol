@@ -6,14 +6,15 @@ import {AssociatedAccounts} from "./AssociatedAccounts.sol";
 import {InteroperableAddress} from "./InteroperableAddresses.sol";
 
 /// @title AssociationsStore
-/// @notice Proof of concept storage contract for Associations compliant with the Associated Accounts specification.
+/// @notice Proof of concept storage contract for Associations compliant with ERC-8092: Associated Accounts.
+/// https://github.com/ethereum/ERCs/pull/1377/files
 contract AssociationsStore is AssociatedAccounts {
     using AssociatedAccountsLib for *;
 
-    /// @dev Mapping from association uuid to SignedAssociationRecord
+    /// @dev Mapping from association ID to SignedAssociationRecord
     mapping(bytes32 => SignedAssociationRecord) private associations;
 
-    /// @dev Mapping from account hash to array of association uuids involving that account
+    /// @dev Mapping from account hash to array of association IDs involving that account
     mapping(bytes32 => bytes32[]) private accountAssociations;
 
     /// @notice Error thrown when validation of a SignedAssociationRecord fails.
@@ -22,7 +23,7 @@ contract AssociationsStore is AssociatedAccounts {
     /// @notice Error thrown when attempting to revoke an association that doesn't exist.
     error AssociationNotFound();
 
-    /// @notice Error thrown when an association with the given uuid already exists.
+    /// @notice Error thrown when an association with the given identifier already exists.
     error AssociationAlreadyExists();
 
     /// @notice Error thrown when the caller is not authorized to revoke the association.
@@ -34,33 +35,32 @@ contract AssociationsStore is AssociatedAccounts {
     /// @notice Store a new SignedAssociationRecord after validation.
     /// @param sar The SignedAssociationRecord to store.
     function storeAssociation(SignedAssociationRecord calldata sar) external {
-        bytes32 uuid = sar.uuidFromSAR();
+        bytes32 associationId = sar.associationIdFromSAR();
 
-        if (associations[uuid].record.validAt != 0) revert AssociationAlreadyExists();
+        if (associations[associationId].record.validAt != 0) revert AssociationAlreadyExists();
         if (!sar.validateAssociatedAccount()) revert InvalidAssociation();
 
         bytes32 initiatorHash = keccak256(sar.record.initiator);
         bytes32 approverHash = keccak256(sar.record.approver);
 
-        associations[uuid] = sar;
-        accountAssociations[initiatorHash].push(uuid);
-        accountAssociations[approverHash].push(uuid);
+        associations[associationId] = sar;
+        accountAssociations[initiatorHash].push(associationId);
+        accountAssociations[approverHash].push(associationId);
 
-        emit AssociationCreated(uuid, initiatorHash, approverHash, sar);
+        emit AssociationCreated(associationId, initiatorHash, approverHash, sar);
     }
 
     /// @notice Revoke an existing association.
-    /// @param uuid The unique identifier of the association to revoke.
+    /// @param associationId The unique identifier of the association to revoke.
     /// @param revokedAt Optional timestamp for when the association should be considered revoked (0 for immediate).
-    function revokeAssociation(bytes32 uuid, uint40 revokedAt) external {
-        SignedAssociationRecord storage sar = associations[uuid];
+    function revokeAssociation(bytes32 associationId, uint40 revokedAt) external {
+        SignedAssociationRecord storage sar = associations[associationId];
 
         if (sar.record.validAt == 0) revert AssociationNotFound();
         if (sar.revokedAt != 0) revert AssociationAlreadyRevoked();
 
         // Format the msg.sender as an ERC-7930 address for comparison
-        // @TODO: this won't work if the account is not native to this chain. consider how we can use signatures
-        // to relay revocations.
+        // @TODO: this won't work if the account is not native to this chain. Add support for other chains via relayed signed payloads.
         bytes memory senderInteroperable = InteroperableAddress.formatEvmV1(block.chainid, msg.sender);
         bytes32 senderHash = keccak256(senderInteroperable);
         bytes32 initiatorHash = keccak256(sar.record.initiator);
@@ -73,24 +73,24 @@ contract AssociationsStore is AssociatedAccounts {
         uint40 effectiveRevokedAt = revokedAt > block.timestamp ? revokedAt : uint40(block.timestamp);
         sar.revokedAt = effectiveRevokedAt;
 
-        emit AssociationRevoked(uuid, senderHash, effectiveRevokedAt);
+        emit AssociationRevoked(associationId, senderHash, effectiveRevokedAt);
     }
 
-    /// @notice Retrieve a stored association by uuid.
-    /// @param uuid The unique identifier of the association.
-    /// @return The SignedAssociationRecord corresponding to the uuid.
-    function getAssociation(bytes32 uuid) external view returns (SignedAssociationRecord memory) {
-        SignedAssociationRecord memory sar = associations[uuid];
+    /// @notice Retrieve a stored association by its identifier.
+    /// @param associationId The unique identifier of the association.
+    /// @return The SignedAssociationRecord corresponding to the associationId.
+    function getAssociation(bytes32 associationId) external view returns (SignedAssociationRecord memory) {
+        SignedAssociationRecord memory sar = associations[associationId];
         if (sar.record.validAt == 0) {
             revert AssociationNotFound();
         }
         return sar;
     }
 
-    /// @notice Get all association uuids for a given account.
+    /// @notice Get all association IDs for a given account.
     /// @param account The ERC-7930 formatted account address.
-    /// @return An array of association uuids involving the account.
-    function getAssociationUuidsForAccount(bytes calldata account) external view returns (bytes32[] memory) {
+    /// @return An array of association IDs involving the account.
+    function getAssociationIdsForAccount(bytes calldata account) external view returns (bytes32[] memory) {
         bytes32 accountHash = keccak256(account);
         return accountAssociations[accountHash];
     }
@@ -104,11 +104,11 @@ contract AssociationsStore is AssociatedAccounts {
         returns (SignedAssociationRecord[] memory)
     {
         bytes32 accountHash = keccak256(account);
-        bytes32[] memory uuids = accountAssociations[accountHash];
-        SignedAssociationRecord[] memory sars = new SignedAssociationRecord[](uuids.length);
+        bytes32[] memory associationIds = accountAssociations[accountHash];
+        SignedAssociationRecord[] memory sars = new SignedAssociationRecord[](associationIds.length);
 
-        for (uint256 i = 0; i < uuids.length; i++) {
-            sars[i] = associations[uuids[i]];
+        for (uint256 i = 0; i < associationIds.length; i++) {
+            sars[i] = associations[associationIds[i]];
         }
 
         return sars;
@@ -123,11 +123,11 @@ contract AssociationsStore is AssociatedAccounts {
         returns (SignedAssociationRecord[] memory)
     {
         bytes32 accountHash = keccak256(account);
-        bytes32[] memory uuids = accountAssociations[accountHash];
+        bytes32[] memory associationIds = accountAssociations[accountHash];
 
         uint256 activeCount = 0;
-        for (uint256 i = 0; i < uuids.length; i++) {
-            SignedAssociationRecord storage sar = associations[uuids[i]];
+        for (uint256 i = 0; i < associationIds.length; i++) {
+            SignedAssociationRecord storage sar = associations[associationIds[i]];
             if (_isActive(sar)) {
                 activeCount++;
             }
@@ -135,8 +135,8 @@ contract AssociationsStore is AssociatedAccounts {
 
         SignedAssociationRecord[] memory activeSars = new SignedAssociationRecord[](activeCount);
         uint256 index = 0;
-        for (uint256 i = 0; i < uuids.length; i++) {
-            SignedAssociationRecord storage sar = associations[uuids[i]];
+        for (uint256 i = 0; i < associationIds.length; i++) {
+            SignedAssociationRecord storage sar = associations[associationIds[i]];
             if (_isActive(sar)) {
                 activeSars[index] = sar;
                 index++;
@@ -153,10 +153,10 @@ contract AssociationsStore is AssociatedAccounts {
     function areAccountsAssociated(bytes calldata account1, bytes calldata account2) external view returns (bool) {
         bytes32 account1Hash = keccak256(account1);
         bytes32 account2Hash = keccak256(account2);
-        bytes32[] memory uuids = accountAssociations[account1Hash];
+        bytes32[] memory associationIds = accountAssociations[account1Hash];
 
-        for (uint256 i = 0; i < uuids.length; i++) {
-            SignedAssociationRecord storage sar = associations[uuids[i]];
+        for (uint256 i = 0; i < associationIds.length; i++) {
+            SignedAssociationRecord storage sar = associations[associationIds[i]];
 
             // Check if this association involves account2
             bytes32 initiatorHash = keccak256(sar.record.initiator);
@@ -184,10 +184,10 @@ contract AssociationsStore is AssociatedAccounts {
     {
         bytes32 account1Hash = keccak256(account1);
         bytes32 account2Hash = keccak256(account2);
-        bytes32[] memory uuids = accountAssociations[account1Hash];
+        bytes32[] memory associationIds = accountAssociations[account1Hash];
 
-        for (uint256 i = 0; i < uuids.length; i++) {
-            SignedAssociationRecord storage storedSar = associations[uuids[i]];
+        for (uint256 i = 0; i < associationIds.length; i++) {
+            SignedAssociationRecord storage storedSar = associations[associationIds[i]];
 
             // Check if this association involves account2
             bytes32 initiatorHash = keccak256(storedSar.record.initiator);
