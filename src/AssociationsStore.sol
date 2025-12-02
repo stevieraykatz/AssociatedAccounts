@@ -66,7 +66,7 @@ contract AssociationsStore is AssociatedAccounts {
         bytes32 initiatorHash = keccak256(sar.record.initiator);
         bytes32 approverHash = keccak256(sar.record.approver);
 
-        if (senderHash != initiatorHash || senderHash != approverHash) {
+        if (senderHash != initiatorHash && senderHash != approverHash) {
             revert UnauthorizedRevocation();
         }
 
