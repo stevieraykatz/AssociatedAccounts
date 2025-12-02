@@ -14,9 +14,9 @@ The Associations Store has been deployed to Base Sepolia behind a Transparent Up
 
 | Contract | Address | Link |
 |----------|---------|------|
-| **Proxy** | `0xF7d1961962F22236fC30e6295Fa1AD0Df9Fa300D` | [View on Sepolia BaseScan](https://sepolia.basescan.org/address/0xF7d1961962F22236fC30e6295Fa1AD0Df9Fa300D) |
-| Implementation | `0x90C156F48BE396416A7F3B044B366Cf612f129c6` | [View on Sepolia BaseScan](https://sepolia.basescan.org/address/0x90C156F48BE396416A7F3B044B366Cf612f129c6) |
-| ProxyAdmin | `0x447c92D63aA37687D01addcf23C33Fc8d3FaD114` | [View on Sepolia BaseScan](https://sepolia.basescan.org/address/0x447c92D63aA37687D01addcf23C33Fc8d3FaD114) |
+| **Proxy** | `0x6f4D643BD9332d9Aa3a828576e3a64ccc58D2684` | [View on Sepolia BaseScan](https://sepolia.basescan.org/address/0x6f4D643BD9332d9Aa3a828576e3a64ccc58D2684) |
+| Implementation | `0x868C5e78c6bB86E3794d8c5beBf27941644722B7` | [View on Sepolia BaseScan](https://sepolia.basescan.org/address/0x868C5e78c6bB86E3794d8c5beBf27941644722B7) |
+| ProxyAdmin | `0x5650Ccf0B216826B5bCeCc9033691Ad515B1f5ad` | [View on Sepolia BaseScan](https://sepolia.basescan.org/address/0x5650Ccf0B216826B5bCeCc9033691Ad515B1f5ad) |
 
 > **Note:** Always interact with the Proxy address. The implementation contract contains the logic, but the proxy maintains the state and is upgradeable. 
 
